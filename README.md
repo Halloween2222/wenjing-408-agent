@@ -1,0 +1,68 @@
+# 问径 · 408 智能体
+
+> 面向 408 考研学生的搜题与答疑助手，提供题库精准检索、AI 引导式追问和本地资料解析。
+
+当前阶段：仓库初始化与并行开发准备。
+
+## 核心资源
+
+- [项目总览（腾讯文档）](https://docs.qq.com/markdown/DYXBPbEdYWGtHYkVC)
+- [开发交接与执行指南（腾讯文档）](https://docs.qq.com/markdown/DYWpLVFZ0dVZ3aGJh)
+- [开发基准与设计规范（腾讯文档）](https://docs.qq.com/markdown/DYVZUc3RMUmJXVXFD)
+- [Apifox API 契约](https://hr124ptabw.apifox.cn/)
+
+## 仓库结构
+
+```text
+project-root/
+├── frontend/                 # 前端项目
+│   ├── public/               # 静态资源
+│   ├── src/api/              # 请求封装
+│   ├── src/assets/           # 图片与全局样式
+│   ├── src/components/       # 公共组件
+│   ├── src/router/           # 路由配置
+│   ├── src/store/            # 状态管理
+│   ├── src/utils/            # 工具函数
+│   └── src/views/            # 核心页面
+├── backend/                  # 后端项目
+│   ├── app/api/              # 路由接口
+│   ├── app/core/             # 配置
+│   ├── app/schemas/          # 数据校验
+│   ├── app/services/         # 业务逻辑
+│   ├── data/questions.json   # 题库资产
+│   └── tests/                # 后端测试
+├── docs/                     # 交付文档
+├── .gitignore
+├── docker-compose.yml
+└── README.md
+```
+
+## 协作规则
+
+- `main` 是受保护主干，禁止直接 push。
+- 开发分支使用 `feature/<scope>`，完成后通过 Pull Request 合入 `main`。
+- PR 至少获得 1 个批准，由 TL 负责最终合并。
+- 提交信息使用 `type: description`，例如 `feat: 新增检索接口`、`fix: 修复上传异常`。
+- 接口字段和返回结构以 Apifox 为准。修改契约前必须报备 TL，并同步更新 Apifox。
+- 禁止提交 `.env`、API Key、个人凭据和本地工作区文件。
+
+## 快速开始
+
+前后端脚手架合入后，将在这里补充依赖安装、开发启动和本地联调命令。
+
+克隆仓库：
+
+```powershell
+git clone https://github.com/echo14670/wenjing-408-agent.git
+cd wenjing-408-agent
+```
+
+## 环境变量
+
+- 前端本地配置使用 `frontend/.env.development`。
+- 后端复制 `backend/.env.example` 为 `backend/.env` 后填写本地值。
+- 真实密钥只放入本地 `.env`，不得提交到仓库。
+
+## 部署
+
+测试/演示环境地址：待部署后补充。
