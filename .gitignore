@@ -1,0 +1,31 @@
+# Local-only workspace files; never publish these to GitHub.
+/AGENTS.md
+/历史文件/
+/'
+
+# Secrets and local environment overrides.
+.env
+.env.*
+!**/.env.example
+!**/.env.development
+
+# Frontend dependencies and build output.
+frontend/node_modules/
+frontend/dist/
+frontend/coverage/
+
+# Python environments, bytecode, and test caches.
+backend/.venv/
+backend/venv/
+**/__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Runtime output.
+*.log
+
+# Editor and operating-system files.
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
