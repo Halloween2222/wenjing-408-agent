@@ -41,8 +41,8 @@ async function send() {
   try {
     history.appendMessage(props.sessionId, { role: 'user', content: text })
     const payload = {
-      session_messages: history.currentMessages,
-      question_id: session.value.question_id,
+      session_messages: history.messagesForSession(props.sessionId),
+      question_id: session.value.match_type === 'original' ? session.value.question_id : null,
       user_answer: session.value.answer_attempt?.user_answer || '',
       mode: mode.value,
       context_chunks: materials.contextChunks
@@ -58,12 +58,19 @@ async function send() {
     last.tool_result = res.tool_result || ''
     last.citations = res.citations || []
     history.persist()
+    if (draft.value.trim() === text) draft.value = ''
   } catch (e) {
     error.value = e.message
   } finally {
     sending.value = false
-    draft.value = ''
   }
+}
+
+async function revealAndAsk() {
+  if (sending.value || !session.value) return
+  history.revealAnswer(props.sessionId)
+  draft.value = '我选择查看这道题的完整答案与解析。'
+  await send()
 }
 
 /** 失败重试：不重复追加用户消息，直接按当前完整消息序列重发 */
@@ -75,8 +82,8 @@ async function retry() {
   sending.value = true
   try {
     const res = await chatRequest({
-      session_messages: history.currentMessages,
-      question_id: session.value.question_id,
+      session_messages: history.messagesForSession(props.sessionId),
+      question_id: session.value.match_type === 'original' ? session.value.question_id : null,
       user_answer: session.value.answer_attempt?.user_answer || '',
       mode: mode.value,
       context_chunks: materials.contextChunks
@@ -90,6 +97,7 @@ async function retry() {
     lastMsg.tool_result = res.tool_result || ''
     lastMsg.citations = res.citations || []
     history.persist()
+    if (draft.value.trim() === last.content) draft.value = ''
   } catch (e) {
     error.value = e.message
   } finally {
@@ -123,7 +131,7 @@ async function retry() {
         <div class="msg" :class="m.role === 'user' ? 'msg-user' : 'msg-assistant'">
           <div class="bubble">
             <div class="bubble-text">{{ m.content }}</div>
-            <div v-if="m.tool_result" class="tool-result">
+            <div v-if="m.tool_result && (!isGuided || session.answer_revealed)" class="tool-result">
               <span class="tool-label">工具结果</span>
               <code>{{ m.tool_result }}</code>
             </div>
@@ -143,6 +151,10 @@ async function retry() {
         <button class="link-btn" @click="retry">重试</button>
         <button class="link-btn" @click="error = ''">关闭</button>
       </div>
+    </div>
+
+    <div v-if="isGuided && !session.question_id && !session.answer_revealed" class="quick-asks">
+      <button class="btn btn-ghost" :disabled="sending" @click="revealAndAsk">查看完整解答</button>
     </div>
 
     <div class="input-row">

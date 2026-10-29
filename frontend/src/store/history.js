@@ -18,11 +18,18 @@ export const useHistoryStore = defineStore('history', {
     currentSession(state) {
       return state.sessions.find((s) => s.session_id === state.currentSessionId) || null
     },
-    /** 用于 /api/chat 的 session_messages（只取 role/content） */
-    currentMessages(state) {
-      const s = state.sessions.find((x) => x.session_id === state.currentSessionId)
+    /** 题干始终保留在现有 session_messages 中，其余只携带最近三轮。 */
+    messagesForSession: (state) => (sessionId) => {
+      const s = state.sessions.find((x) => x.session_id === sessionId)
       if (!s) return []
-      return (s.messages || []).map((m) => ({ role: m.role, content: m.content }))
+      const context = s.question_stem ? [{ role: 'user', content: s.question_stem }] : []
+      if (s.mode === 'guided' && s.answer_revealed === true) {
+        context.push({ role: 'user', content: '我已主动选择查看答案，可以结合完整答案继续讲解。' })
+      }
+      return context.concat((s.messages || []).slice(-6).map((m) => ({ role: m.role, content: m.content })))
+    },
+    currentMessages() {
+      return this.messagesForSession(this.currentSessionId)
     }
   },
 
@@ -39,6 +46,7 @@ export const useHistoryStore = defineStore('history', {
         mode,
         question_id: questionId,
         question_stem: questionStem,
+        answer_revealed: false,
         match_type: matchType,
         title: (questionStem || '未命名提问').slice(0, 24),
         answer_attempt: { user_answer: userAnswer, user_reasoning: userReasoning },
@@ -73,6 +81,13 @@ export const useHistoryStore = defineStore('history', {
       if (!session) return
       session.answer_attempt = { user_answer, user_reasoning }
       session.updated_at = new Date().toISOString()
+      this.persist()
+    },
+
+    revealAnswer(sessionId) {
+      const session = this.sessions.find((s) => s.session_id === sessionId)
+      if (!session) return
+      session.answer_revealed = true
       this.persist()
     },
 

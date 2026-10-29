@@ -31,6 +31,14 @@ export const useMaterialsStore = defineStore('materials', {
 
     /** 从上传接口结果导入资料并切片 */
     addFromUpload({ title, file_type, extracted_text }) {
+      // 用户重试识别或重复确认同一内容时复用已有资料，避免重复发送上下文。
+      const texts = chunkMaterial('', extracted_text || '').map((chunk) => chunk.text)
+      const existing = this.items.find((item) =>
+        item.title === title && item.file_type === (file_type || 'text') &&
+        item.chunks?.length === texts.length &&
+        item.chunks.every((chunk, index) => chunk.text === texts[index])
+      )
+      if (existing) return existing
       const materialId = uid('mat')
       const now = new Date().toISOString()
       const material = {

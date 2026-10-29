@@ -11,7 +11,7 @@ import { MATCH_TYPE_META } from '../config/mock'
  * ResultView —— 检索结果页（郑志銮）
  * 按 match_type 三态渲染（业务底线 #3 三态严格隔离）：
  *   - original：展示题库核验解析 + 追问（AnswerPanel）
- *   - similar ：仅参考展示，不可进入作答与追问流程
+ *   - similar ：候选题仅参考；答疑仍使用用户原始题干，不绑定候选题 ID
  *   - miss    ：未收录，进入 AI 解题分支（AnswerPanel），不虚构出处
  * 答案/步骤/教学模式展示组件由 王翔鹏 深化（见 AnswerPanel.vue 顶部注释）。
  */
@@ -30,6 +30,8 @@ const meta = computed(() => MATCH_TYPE_META[matchType.value] || null)
 
 const q = computed(() => result.value?.question_data || null)
 const sessionId = computed(() => history.currentSessionId)
+const currentSession = computed(() => history.currentSession)
+const answerVisible = computed(() => currentSession.value?.mode !== 'guided' || currentSession.value?.answer_revealed === true)
 
 const modeLabel = computed(() => {
   const s = history.sessions.find((x) => x.session_id === history.currentSessionId)
@@ -85,7 +87,7 @@ function back() {
         <div v-if="q.source_ref" class="q-source">来源：{{ q.source_ref }}</div>
       </div>
 
-      <div class="card solution-card">
+      <div v-if="answerVisible" class="card solution-card">
         <div class="solution-head">
           <span class="solution-title">题库核验解析</span>
           <span class="answer-chip">参考答案：{{ q.answer }}</span>
@@ -95,6 +97,11 @@ function back() {
         <div class="solution-note">
           优先展示题库核验解析；模型讲解与原答案冲突时，将同屏展示差异供你核对（红线 #1）。
         </div>
+      </div>
+
+      <div v-else class="card solution-card">
+        <p>引导模式下，参考答案和完整解析暂时收起。</p>
+        <button class="btn btn-primary" @click="history.revealAnswer(sessionId)">查看答案</button>
       </div>
 
       <section class="chat-section">
@@ -109,7 +116,7 @@ function back() {
         <div class="banner-title">相似题仅作参考展示</div>
         <p class="banner-text">
           当前题库未精确命中你的题目。相似题只用于参考知识点与解题方向，
-          <b>不可进入作答与追问流程</b>（业务底线 #3）。如确认是你要找的题，可修正题干后重新搜索。
+          不会代替你的题目进入作答与追问流程。你可以返回修正题干，或在下方继续讨论自己输入的题目。
         </p>
         <div class="banner-actions">
           <button class="btn btn-primary" @click="back">返回修正题干</button>
@@ -126,6 +133,10 @@ function back() {
           <div v-if="sim.source_ref" class="similar-source">{{ sim.source_ref }}</div>
         </div>
       </div>
+      <section class="chat-section">
+        <div class="section-title">针对我输入的题目继续求解</div>
+        <AnswerPanel v-if="sessionId" :session-id="sessionId" />
+      </section>
     </template>
 
     <!-- ============ 未命中（AI 解题） ============ -->

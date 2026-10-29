@@ -15,7 +15,10 @@ export async function chatRequest(payload) {
 
   if (mockStore.mode !== 'apifox') {
     await delay(600)
-    const demo = DEMO_DATA.chat[payload.mode] || DEMO_DATA.chat.direct
+    const revealed = payload.session_messages?.some((message) =>
+      message.role === 'user' && message.content === '我已主动选择查看答案，可以结合完整答案继续讲解。'
+    )
+    const demo = DEMO_DATA.chat[revealed ? 'direct' : payload.mode] || DEMO_DATA.chat.direct
     return {
       ...demo,
       source: 'local-demo'

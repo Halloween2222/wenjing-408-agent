@@ -36,7 +36,8 @@ const ocrText = ref('')
 const uploading = ref(false)
 const uploadError = ref('')
 const uploadFailures = ref([])
-const saveToMaterials = ref(true)
+const savedOcrText = ref(null)
+const materialSaved = computed(() => savedOcrText.value === ocrText.value.trim())
 
 const modes = [
   { value: 'direct', title: '直接讲解', desc: '解释概念、条件与知识联系' },
@@ -76,6 +77,7 @@ function pickFile(evt) {
   if (previewUrl.value) URL.revokeObjectURL(previewUrl.value)
   previewUrl.value = f.type.startsWith('image/') ? URL.createObjectURL(f) : ''
   ocrText.value = ''
+  savedOcrText.value = null
 }
 
 async function recognize() {
@@ -87,18 +89,23 @@ async function recognize() {
     const res = await uploadFile(file.value)
     ocrText.value = res.extracted_text || ''
     uploadFailures.value = res.failure_details || []
-    if (saveToMaterials.value && res.extracted_text) {
-      materials.addFromUpload({
-        title: file.value.name,
-        file_type: file.value.type || 'text',
-        extracted_text: res.extracted_text
-      })
-    }
+    savedOcrText.value = null
   } catch (e) {
     uploadError.value = e.message
   } finally {
     uploading.value = false
   }
+}
+
+function saveRecognizedMaterial() {
+  const text = ocrText.value.trim()
+  if (!text || uploading.value || materialSaved.value) return
+  materials.addFromUpload({
+    title: file.value?.name || '识别资料',
+    file_type: file.value?.type || 'text',
+    extracted_text: text
+  })
+  savedOcrText.value = text
 }
 
 async function start() {
@@ -159,7 +166,7 @@ onBeforeUnmount(() => {
             <label class="field-label">知识问题/题目</label>
             <span class="head-right">
               选择试点课程
-              <select v-model="subject" class="select">
+              <select v-model="subject" class="select" disabled title="学科独立筛选暂未开放">
                 <option value="">全部学科</option>
                 <option v-for="s in subjects" :key="s" :value="s">{{ s }}</option>
               </select>
@@ -175,8 +182,8 @@ onBeforeUnmount(() => {
           <div class="field-row">
             <label class="field-label">辅助定位（选填）</label>
             <div class="locate">
-              <input v-model="year" class="input input-sm" placeholder="年份" maxlength="4" inputmode="numeric" />
-              <input v-model="questionNo" class="input input-sm" placeholder="题号" maxlength="8" />
+              <input v-model="year" class="input input-sm" placeholder="年份" disabled title="年份题号精确定位暂未开放" maxlength="4" inputmode="numeric" />
+              <input v-model="questionNo" class="input input-sm" placeholder="题号" disabled title="年份题号精确定位暂未开放" maxlength="8" />
             </div>
             <div class="quick-fill">
               <button class="link-btn" @click="fillExample('exercise')">练习示例</button>
@@ -185,6 +192,7 @@ onBeforeUnmount(() => {
             </div>
           </div>
 
+          <p class="field-hint">当前按题干检索，学科与年份题号筛选暂未开放。</p>
           <label class="field-label">
             我的理解
             <span class="field-hint">选填，让讲解回应你的疑问</span>
@@ -219,10 +227,7 @@ onBeforeUnmount(() => {
             <button class="btn btn-primary" :disabled="!file || uploading" @click="recognize">
               {{ uploading ? '识别中…' : '上传并识别' }}
             </button>
-            <label class="checkbox">
-              <input v-model="saveToMaterials" type="checkbox" />
-              同时保存到个人资料库（用于后续 context_chunks 切片）
-            </label>
+            <span class="field-hint">请核对下方识别结果，修正后再确认保存。</span>
           </div>
 
           <div v-if="uploadError" class="msg-error">{{ uploadError }}</div>
@@ -233,6 +238,11 @@ onBeforeUnmount(() => {
 
           <label class="field-label">识别结果 <span class="field-hint">可修正后搜题</span></label>
           <textarea v-model="ocrText" class="textarea textarea-lg" rows="6" placeholder="识别出的题目文字会显示在这里，请核对修正……" />
+          <div class="upload-actions">
+            <button class="btn btn-ghost" :disabled="!ocrText.trim() || uploading || materialSaved" @click="saveRecognizedMaterial">
+              {{ materialSaved ? '已保存修正后的内容' : '确认保存到个人资料库' }}
+            </button>
+          </div>
         </template>
 
         <!-- ============ 模式选择 ============ -->
