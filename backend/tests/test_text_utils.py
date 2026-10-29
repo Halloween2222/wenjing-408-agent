@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import pytest
+
 from app.services import text_utils
 
 
@@ -44,3 +46,12 @@ def test_empty_input_is_safe():
     assert text_utils.normalize(None) == ""
     assert text_utils.tokenize("") == []
     assert text_utils.extract_numbers("") == set()
+
+@pytest.mark.parametrize("left,right", [
+    ("整数 -128", "整数 +128"),
+    ("容量为 2² 字节", "容量为 22 字节"),
+    ("命中率 0.95", "命中率 095"),
+    ("选出正确的说法", "选出不正确的说法"),
+])
+def test_identity_preserves_meaningful_differences(left, right):
+    assert text_utils.normalize_identity(left) != text_utils.normalize_identity(right)

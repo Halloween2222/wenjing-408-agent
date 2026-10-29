@@ -59,6 +59,15 @@ def normalize(text: str | None) -> str:
     return value
 
 
+def normalize_identity(text: str | None) -> str:
+    """严格比较题目身份；大小写、内部空白、符号和字符宽度均可能影响答案。"""
+    if not text:
+        return ""
+    # 只忽略首尾空白和明确的“第 N 题”标记，其他排版差异留给相似题召回。
+    value = re.sub(r"^\s*第\s*\d+\s*题\s*[:：]?\s*", "", str(text))
+    return value.strip()
+
+
 def _cjk_bigrams(segment: str) -> list[str]:
     """中文串切 2-gram；单字成串时保留单字，避免短查询丢词。"""
     tokens: list[str] = []

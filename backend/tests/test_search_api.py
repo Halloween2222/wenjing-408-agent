@@ -38,7 +38,7 @@ def client() -> TestClient:
 
 
 def test_response_matches_contract(client: TestClient):
-    resp = client.post("/api/search", json={"raw_input": "四路组相联，组号占 2 位", "input_type": "text"})
+    resp = client.post("/api/search", json={"raw_input": '某计算机按字节编址，Cache 容量为 64KB，主存块大小为 64B，采用四路组相联映射，主存地址为 32 位。有同学认为“该地址中的组号占 2 位”。请判断该说法是否正确，并说明理由。', "input_type": "text"})
     assert resp.status_code == 200
     body = resp.json()
     assert set(body.keys()) == CONTRACT_KEYS
@@ -53,7 +53,7 @@ def test_original_returns_verified_solution(client: TestClient):
         "/api/search",
         json={
             "raw_input": "某计算机按字节编址，Cache 容量为 64KB，主存块大小为 64B，"
-            "采用四路组相联映射，主存地址为 32 位。组号占 2 位，对吗？",
+            "采用四路组相联映射，主存地址为 32 位。有同学认为“该地址中的组号占 2 位”。请判断该说法是否正确，并说明理由。",
             "input_type": "text",
         },
     ).json()
@@ -84,14 +84,14 @@ def test_miss_returns_empty_payload(client: TestClient):
 
 
 def test_input_type_defaults_to_text(client: TestClient):
-    body = client.post("/api/search", json={"raw_input": "四路组相联，组号占 2 位"}).json()
+    body = client.post("/api/search", json={"raw_input": "某计算机按字节编址，Cache 容量为 64KB，主存块大小为 64B，采用四路组相联映射，主存地址为 32 位。有同学认为“该地址中的组号占 2 位”。请判断该说法是否正确，并说明理由。"}).json()
     assert body["match_type"] == "original"
 
 
 def test_image_input_uses_extracted_text(client: TestClient):
     """图片输入的文本由上传链路提取后传入，检索逻辑与文字输入一致。"""
     body = client.post(
-        "/api/search", json={"raw_input": "四路组相联，组号占 2 位", "input_type": "image"}
+        "/api/search", json={"raw_input": "某计算机按字节编址，Cache 容量为 64KB，主存块大小为 64B，采用四路组相联映射，主存地址为 32 位。有同学认为“该地址中的组号占 2 位”。请判断该说法是否正确，并说明理由。", "input_type": "image"}
     ).json()
     assert body["match_type"] == "original"
 
@@ -126,3 +126,13 @@ def test_single_word_query_is_not_original(client: TestClient):
     """单词查询不足以判定原题：短查询不构成强命中，避免「Cache」就返回某道题的解析。"""
     body = client.post("/api/search", json={"raw_input": "Cache"}).json()
     assert body["match_type"] in {"similar", "miss"}
+
+def test_same_parameters_with_different_question_is_similar(client: TestClient):
+    body = client.post("/api/search", json={
+        "raw_input": "某计算机按字节编址，Cache 容量为 64KB，主存块大小为 64B，采用四路组相联映射，主存地址为 32 位。求标记位数和块内偏移位数。",
+        "input_type": "text",
+    }).json()
+    assert set(body) == CONTRACT_KEYS
+    assert body["match_type"] == "similar"
+    assert body["question_data"] is None
+    assert body["similar_questions"]

@@ -7,7 +7,7 @@
 3. 索引：字段加权倒排索引 + BM25。字段权重反映「题干比解析更重要」。
 4. 打分：BM25 归一化分 × 覆盖度 × 参数一致性惩罚。
 5. 三态判定：
-   - original —— 综合分 ≥ 原题阈值，且参数（数字/单位）完全一致，且核验状态过关；
+   - original —— 通过分数门槛、完整题目身份唯一确认、参数一致且核验状态过关；
    - similar  —— 综合分 ≥ 相似阈值，但不满足原题条件；
    - miss     —— 其余，含题库为空、输入为空等情形。
 
@@ -51,8 +51,8 @@ PARAM_PENALTY_FLOOR = 0.55
 SUBSTRING_BONUS = 0.12
 
 # ---- 强命中规则 ----
-# BM25 的 idf 依赖题库规模，题库越小绝对分越低。为了让「题干片段复制」这种典型输入
-# 在任何规模的题库上都能稳定判为原题，额外增加一条与题库规模无关的规则：
+# BM25 的 idf 依赖题库规模，题库越小绝对分越低。为了让「完整题干复制」这种典型输入
+# 在小题库上也能通过候选分数门槛，额外增加一条与题库规模无关的规则：
 # 查询词几乎全部命中题干 + 参数完全一致 + 不是一两个词就能触发的短查询。
 STRONG_COVERAGE = 0.9
 STRONG_MIN_BM25 = 0.2
@@ -252,7 +252,7 @@ class RetrievalService:
         if not candidates:
             return SearchOutcome("miss", None, [], reason="no_candidate")
 
-        return self._decide(candidates, query_terms)
+        return self._decide(candidates, query_terms, raw_input)
 
     def _is_strong_hit(self, best: Candidate, query_terms: int) -> bool:
         """与题库规模无关的强命中判定。"""
@@ -264,7 +264,7 @@ class RetrievalService:
             and best.score >= self.original_threshold * STRONG_RELAX_RATIO
         )
 
-    def _decide(self, candidates: list[Candidate], query_terms: int = 0) -> SearchOutcome:
+    def _decide(self, candidates: list[Candidate], query_terms: int, raw_input: str) -> SearchOutcome:
         best = candidates[0]
 
         if best.score >= self.original_threshold or self._is_strong_hit(best, query_terms):
@@ -277,6 +277,21 @@ class RetrievalService:
                     self._limit(candidates),
                     reason="params_mismatch",
                     query_terms=query_terms,
+                )
+            # 高相似度只能召回候选，不能证明题目相同。完整题干（或题干+同序选项）
+            # 必须在保留数学符号的排版归一化后唯一匹配，才可进入原题分支。
+            identity = text_utils.normalize_identity(raw_input)
+            exact = [
+                question for question in self.index.questions
+                if identity in {
+                    text_utils.normalize_identity(question.stem),
+                    text_utils.normalize_identity("\n".join([question.stem, *question.options])),
+                }
+            ]
+            if len(exact) != 1 or exact[0].question_id != best.question.question_id:
+                return SearchOutcome(
+                    "similar", None, self._limit(candidates),
+                    reason="identity_not_confirmed", query_terms=query_terms,
                 )
             if self.unverified_policy == "downgrade" and not best.question.is_verified():
                 return SearchOutcome(

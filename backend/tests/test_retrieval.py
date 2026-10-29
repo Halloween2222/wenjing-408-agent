@@ -27,17 +27,22 @@ def test_original_when_stem_copied_verbatim(cache_service: RetrievalService):
     assert outcome.question.question_id == "Q001"
 
 
-def test_original_with_partial_query(cache_service: RetrievalService):
-    """用户只输入关键片段（验收红线的 Cache 基准输入）也应命中原题。"""
+def test_partial_query_only_returns_reference(cache_service: RetrievalService):
+    """缺少容量、块大小的片段不能唯一确认是哪道题。"""
     outcome = cache_service.search("四路组相联，组号占 2 位")
-    assert outcome.match_type == "original", outcome.reason
-    assert outcome.question.question_id == "Q001"
+    assert outcome.match_type == "similar", outcome.reason
+    assert outcome.question is None
+    assert outcome.candidates[0].question.question_id == "Q001"
 
 
-def test_original_survives_fullwidth_and_spacing(cache_service: RetrievalService):
-    outcome = cache_service.search("Ｃａｃｈｅ 容量 ６４ＫＢ　四路组相联")
-    assert outcome.match_type == "original", outcome.reason
-    assert outcome.question.question_id == "Q001"
+def test_fullwidth_input_still_retrieves_reference(cache_service: RetrievalService):
+    outcome = cache_service.search(
+        "某计算机按字节编址，Ｃａｃｈｅ 容量为 ６４ＫＢ，主存块大小为 ６４Ｂ，采用四路组相联映射，"
+        "主存地址为 ３２ 位。有同学认为“该地址中的组号占 ２ 位”。请判断该说法是否正确，并说明理由。"
+    )
+    assert outcome.match_type == "similar", outcome.reason
+    assert outcome.question is None
+    assert outcome.candidates[0].question.question_id == "Q001"
 
 
 def test_similar_when_parameters_differ(cache_service: RetrievalService):
@@ -48,7 +53,7 @@ def test_similar_when_parameters_differ(cache_service: RetrievalService):
     assert outcome.match_type == "similar", outcome.reason
     assert outcome.question is None
     assert outcome.candidates, "相似态必须给出相似题列表"
-    assert outcome.reason in {"params_mismatch", "low_score"}
+    assert outcome.reason in {"params_mismatch", "low_score", "identity_not_confirmed"}
 
 
 def test_miss_for_unrelated_input(cache_service: RetrievalService):
@@ -81,7 +86,7 @@ def test_retrieval_without_jieba_falls_back(monkeypatch, cache_bank: list[Questi
     service = RetrievalService(questions=cache_bank)
     outcome = service.search(
         "某计算机按字节编址，Cache 容量为 64KB，主存块大小为 64B，采用四路组相联映射，"
-        "主存地址为 32 位。有同学认为“该地址中的组号占 2 位”。"
+        "主存地址为 32 位。有同学认为“该地址中的组号占 2 位”。请判断该说法是否正确，并说明理由。"
     )
     assert outcome.match_type == "original", outcome.reason
     assert outcome.question.question_id == "Q001"
@@ -202,7 +207,7 @@ def test_cache_baseline_on_real_bank():
     service = RetrievalService(questions=store.load())
     outcome = service.search(
         "某计算机按字节编址，Cache 容量为 64KB，主存块大小为 64B，采用四路组相联映射，"
-        "主存地址为 32 位。组号占 2 位，对吗？"
+        "主存地址为 32 位。有同学认为“该地址中的组号占 2 位”。请判断该说法是否正确，并说明理由。"
     )
     assert outcome.match_type == "original", outcome.reason
     assert outcome.question is not None
