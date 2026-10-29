@@ -124,7 +124,7 @@ class AgentService:
             else None
         )
         reveal_answer = self._is_answer_revealed(payload)
-        tool_result = cache_association_tool(question)
+        tool_result = cache_association_tool(question) if reveal_answer else ""
         citations: list[str] = []
         if question is not None and question.source_ref:
             citations.append(question.source_ref)
@@ -239,6 +239,8 @@ class AgentService:
         if question is None or not question.answer:
             return reply
         answer = re.escape(question.answer.strip())
+        if question.answer.strip().upper() in {"A", "B", "C", "D"}:
+            answer = "[A-D]"
         direct_answer = re.compile(
             rf"(?:标准答案|正确答案|答案)(?:是|为)?\s*[:：]?\s*{answer}(?:\b|$)",
             flags=re.IGNORECASE,
@@ -256,6 +258,8 @@ class AgentService:
         context: AgentContext,
         reply: str,
     ) -> str:
+        if payload.mode == "guided" and not context.reveal_answer:
+            return reply
         question = context.question
         if question is None or not question.answer:
             return reply
