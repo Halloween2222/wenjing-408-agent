@@ -177,3 +177,28 @@ def test_user_supplied_key_is_forwarded_to_factory(
 
     assert response.status_code == 200
     assert received == ["user-key"]
+
+
+@pytest.mark.parametrize("reply", ["答案：C。", "正确答案为 B。"])
+def test_guided_response_hides_answers_and_tool_results(chat_client, reply):
+    client, fake = chat_client
+    fake.reply = reply
+    response = client.post("/api/chat", json=chat_request(mode="guided"))
+    assert response.status_code == 200
+    body = response.json()
+    assert body["tool_result"] == ""
+    assert "先不直接公布最终答案" in body["reply"]
+    assert "题库答案 B" not in body["reply"]
+    assert "group_bits: 8" not in fake.system
+
+
+def test_revealed_guided_response_keeps_tools_and_conflict(chat_client):
+    client, fake = chat_client
+    fake.reply = "答案：C。"
+    payload = chat_request(mode="guided")
+    payload["session_messages"].append({
+        "role": "user", "content": "我已主动选择查看答案，可以结合完整答案继续讲解。"
+    })
+    body = client.post("/api/chat", json=payload).json()
+    assert "group_bits: 8" in body["tool_result"]
+    assert "题库答案 B" in body["reply"]
