@@ -1,6 +1,7 @@
 import request from './request'
 import { useMockStore } from '../store/mock'
 import { DEMO_DATA } from '../config/mock'
+import { CHAT_TIMEOUT_MS } from '../constants/limits'
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 
@@ -25,7 +26,10 @@ export async function chatRequest(payload) {
     }
   }
 
-  const raw = await request.post('/chat', payload, { baseURL: mockStore.mode === 'apifox' ? '/mock-api' : undefined })
+  const raw = await request.post('/chat', payload, {
+    baseURL: mockStore.mode === 'apifox' ? '/mock-api' : undefined,
+    timeout: CHAT_TIMEOUT_MS
+  })
   return {
     reply: raw?.reply ?? '',
     tool_result: raw?.tool_result ?? '',

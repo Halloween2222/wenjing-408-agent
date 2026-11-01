@@ -19,10 +19,11 @@ export function toAppError(err) {
     const status = axiosErr.response?.status
     const code = axiosErr.code ?? ''
     if (code === 'ECONNABORTED' || code === 'ETIMEDOUT') {
+      const timeoutMs = axiosErr.config?.timeout || REQUEST_TIMEOUT_MS
       return {
         kind: 'timeout',
         code: 'TIMEOUT',
-        message: `请求超时（${Math.round(REQUEST_TIMEOUT_MS / 1000)} 秒无响应）`
+        message: `请求超时（${Math.round(timeoutMs / 1000)} 秒无响应）`
       }
     }
     if (!axiosErr.response) {
