@@ -9,10 +9,11 @@ const KEY = 'mock-mode'
  *  - 'apifox'：真实请求 Apifox Mock 地址（结构对、值为占位假数据）
  *  - 'original' | 'similar' | 'miss'：使用本地契约样例，保证三态 UI 可稳定演示
  * 默认 local，右上角悬浮面板 DevMockSwitch 可随时切换。
+ * 线上版本不显示开关，也忽略浏览器里残留的旧选择，固定连接真实后端。
  */
 export const useMockStore = defineStore('mock', {
   state: () => ({
-    mode: loadJSON(KEY, DEFAULT_MOCK_MODE)
+    mode: import.meta.env.DEV ? loadJSON(KEY, DEFAULT_MOCK_MODE) : DEFAULT_MOCK_MODE
   }),
   actions: {
     setMode(mode) {
