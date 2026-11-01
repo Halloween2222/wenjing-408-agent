@@ -1,6 +1,8 @@
 /** 数值常量集中管理，便于联调时一处调整 */
 /** 请求超时（毫秒）——与 useAsyncState 的 timeout 判定保持一致 */
 export const REQUEST_TIMEOUT_MS = 10000
+/** 答疑请求超时（毫秒）——云端模型生成常超过 10 秒，后端单次调用上限 90 秒 */
+export const CHAT_TIMEOUT_MS = 120000
 /** 场景面板里 slow 场景的人为延迟 */
 export const SLOW_DELAY_MS = 3500
 /** 本地历史：最多保留的会话数 */

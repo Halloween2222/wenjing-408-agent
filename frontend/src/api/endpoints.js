@@ -5,7 +5,7 @@ import { enrichChat, enrichSearch } from './mockAdapter'
 import { useMockStore } from '@/store/mock'
 import { DEMO_DATA } from '@/config/mock'
 import { cacheCase } from '@/mock/fixtures/cacheCase'
-import { SLOW_DELAY_MS } from '@/constants/limits'
+import { CHAT_TIMEOUT_MS, SLOW_DELAY_MS } from '@/constants/limits'
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms))
 function source(scenario = 'auto') {
   if (scenario !== 'auto') return { demo: true, scenario }
@@ -42,7 +42,8 @@ export async function sendChat(payload, opts = {}) {
   const revealed = payload.session_messages.some(m => m.role === 'user' && m.content.includes('我已主动选择查看答案'))
   const mode = revealed ? 'direct' : payload.mode
   const raw = origin.network
-    ? await request({ url: '/chat', method: 'POST', data: payload, baseURL: origin.baseURL, signal: opts.signal })
+    ? await request({ url: '/chat', method: 'POST', data: payload, baseURL: origin.baseURL, signal: opts.signal,
+      timeout: CHAT_TIMEOUT_MS })
     : DEMO_DATA.chat[mode]
   const reply = origin.demo ? enrichChat(normalizeChat(raw), mode, origin.scenario) : normalizeChat(raw)
   // 演示也遵循引导模式不提前返回工具结果的规则。

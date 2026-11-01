@@ -9,6 +9,8 @@ import DevMockSwitch from './components/DevMockSwitch.vue'
  * 命中 meta.fullLayout 时不再套 app-shell，否则会出现双层侧栏。
  */
 const route = useRoute()
+// 联调开关只在开发环境出现，线上版本不能切到演示数据。
+const showDevSwitch = import.meta.env.DEV
 </script>
 
 <template>
@@ -23,7 +25,7 @@ const route = useRoute()
         </router-view>
       </main>
     </div>
-    <DevMockSwitch />
+    <DevMockSwitch v-if="showDevSwitch" />
   </div>
 </template>
 

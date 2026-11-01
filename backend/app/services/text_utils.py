@@ -114,11 +114,11 @@ def extract_numbers(text: str | None) -> set[str]:
 
 def unique(items: Iterable[str]) -> list[str]:
     """保持顺序去重。"""
-    seen: set[str] = []
+    seen: set[str] = set()
     result: list[str] = []
     for item in items:
         if item not in seen:
-            seen.append(item)
+            seen.add(item)
             result.append(item)
     return result
 
