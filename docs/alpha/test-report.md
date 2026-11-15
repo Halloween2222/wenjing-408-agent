@@ -144,3 +144,7 @@ npm run build
 ```
 
 当前验收命令、API 结果、双浏览器断言和截图均位于 `docs/alpha/evidence/`。11/19 候选版部署后必须用同一入口重跑，并补充线上 commit、资源哈希和真实模型记录。
+
+## 10. GitHub 提交记录
+
+K 包基于 `main@532c68e` 创建 `feature/alpha-system-regression-k` 分支。提交哈希、分支对比和 Pull Request 入口见 [GitHub 提交记录](evidence/github-commits.md)。

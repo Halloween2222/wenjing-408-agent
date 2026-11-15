@@ -17,6 +17,7 @@
 
 | 文件 | 内容 |
 | --- | --- |
+| [github-commits.md](github-commits.md) | GitHub 分支、基线及提交链接 |
 | [health-local.json](health-local.json) | 本地 81 题、四科分布和核验状态 |
 | [health-online.json](health-online.json) | 线上仍为 16 题 |
 | [online-index-resources.txt](online-index-resources.txt) | 线上资源哈希为旧构建 |
